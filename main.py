@@ -9,7 +9,7 @@ async def respond_same_length(update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.message.reply_text(response)
 
 async def main():
-    application = Application.builder().token(os.environ["BOT_TOKEN"]).build()
+    application = Application.builder().token(os.environ["telegram_api_id"]).build()
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, respond_same_length))
     await application.run_polling()
 
