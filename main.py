@@ -67,11 +67,12 @@ def index():
 
 if __name__ == '__main__':
     # קבע את ה-Webhook כאשר האפליקציה עולה
+    print("@@@@@@ will start in a moment @@@@@@")
     async def set_webhook():
         await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(set_webhook())
 
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=10000)
+    print("@@@@@@ bring up is done, you can start sending links @@@@@@")
