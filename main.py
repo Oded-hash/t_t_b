@@ -73,6 +73,8 @@ if __name__ == '__main__':
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(set_webhook())
+    
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
 
-    app.run(host='0.0.0.0', port=10000)
     print("@@@@@@ bring up is done, you can start sending links @@@@@@")
