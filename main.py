@@ -1,6 +1,6 @@
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, Dispatcher
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
 import requests
 from bs4 import BeautifulSoup
