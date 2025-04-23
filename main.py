@@ -13,6 +13,7 @@ TOKEN = os.environ.get("telegram_token")
 WEBHOOK_URL = os.environ.get("webhook_url")  # תקבע ב-Render כ-Environment Variable
 
 app = Flask(__name__)
+bot_app = None
 
 # Define handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
