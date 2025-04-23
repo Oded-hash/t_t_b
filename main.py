@@ -1,6 +1,6 @@
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, Defaults
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
 import requests
 from bs4 import BeautifulSoup
@@ -8,6 +8,7 @@ from newspaper import Article
 import google.generativeai as genai
 import os
 import asyncio
+import aiohttp  # <--- חדש
 
 TOKEN = os.environ.get("telegram_token")
 WEBHOOK_URL = os.environ.get("webhook_url")  # תקבע ב-Render כ-Environment Variable
@@ -54,7 +55,6 @@ def process_answer(url):
     return response.text
 
 
-# == Webhook route ==
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook():
     global bot_app
@@ -78,11 +78,18 @@ def index():
     return "Bot is running via webhook."
 
 
-# == Async initialization for bot_app with timeout fix ==
+# == Async initialization for bot_app with aiohttp timeout ==
 async def initialize_bot():
     global bot_app
-    defaults = Defaults(timeout=30)  # מאריך את הזמן המותר לכל בקשה
-    bot_app = ApplicationBuilder().token(TOKEN).defaults(defaults).build()
+
+    timeout = aiohttp.ClientTimeout(total=30)  # 30 שניות timeout לכל בקשה
+    bot_app = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .client_timeout(timeout)
+        .build()
+    )
+
     bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     await bot_app.initialize()
     await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
