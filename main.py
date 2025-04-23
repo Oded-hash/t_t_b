@@ -13,7 +13,19 @@ TOKEN = os.environ.get("telegram_token")
 WEBHOOK_URL = os.environ.get("webhook_url")  # תקבע ב-Render כ-Environment Variable
 
 app = Flask(__name__)
-bot_app = ApplicationBuilder().token(TOKEN).build()
+
+# פונקציה לאתחול ה-bot
+async def initialize_bot():
+    bot_app = ApplicationBuilder().token(TOKEN).build()
+    # כאן נוסיף את ה-handler
+    bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    
+    # נוודא שה-bot מאותחל לפני שמבצעים את פעולת ה-webhook
+    await bot_app.initialize()
+    await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
+    print("==> Webhook set successfully")
+    return bot_app
+
 
 # Define handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -52,8 +64,6 @@ def process_answer(url):
     response = model.generate_content(msg)
     return response.text
 
-# Add handlers
-bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook():
@@ -75,15 +85,14 @@ def webhook():
 def index():
     return "Bot is running via webhook."
 
-# ==== Setup the webhook outside of __main__ so it'll run even after sleep ====
 
-async def init_bot():
-    await bot_app.initialize()
-    await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
-    print("==> Webhook set!")
+# === אתחול ה-bot ברקע ===
+@app.before_first_request
+def before_first_request():
+    # אתחול הבוט ברקע
+    loop = asyncio.get_event_loop()
+    loop.create_task(initialize_bot())
 
-# Run the webhook setup on startup
-asyncio.get_event_loop().create_task(init_bot())
 
 # Run Flask app
 port = int(os.environ.get('PORT', 5000))
