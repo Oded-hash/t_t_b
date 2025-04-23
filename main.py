@@ -14,19 +14,6 @@ WEBHOOK_URL = os.environ.get("webhook_url")  # תקבע ב-Render כ-Environment
 
 app = Flask(__name__)
 
-# פונקציה לאתחול ה-bot
-async def initialize_bot():
-    bot_app = ApplicationBuilder().token(TOKEN).build()
-    # כאן נוסיף את ה-handler
-    bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    
-    # נוודא שה-bot מאותחל לפני שמבצעים את פעולת ה-webhook
-    await bot_app.initialize()
-    await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
-    print("==> Webhook set successfully")
-    return bot_app
-
-
 # Define handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
@@ -73,7 +60,7 @@ def webhook():
         print("==> Incoming JSON:", json_data)
 
         update = Update.de_json(json_data, bot_app.bot)
-        asyncio.run(bot_app.process_update(update))
+        asyncio.run(bot_app.process_update(update))  # השתמש ב-asyncio.run במקום get_event_loop
         return 'ok'
     except Exception as e:
         print("==> Error in webhook:", str(e))
@@ -86,12 +73,24 @@ def index():
     return "Bot is running via webhook."
 
 
+# === אתחול ה-bot בצורה אסינכרונית ===
+async def initialize_bot():
+    bot_app = ApplicationBuilder().token(TOKEN).build()
+    # כאן נוסיף את ה-handler
+    bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+
+    # נוודא שה-bot מאותחל לפני שמבצעים את פעולת ה-webhook
+    await bot_app.initialize()
+    await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
+    print("==> Webhook set successfully")
+    return bot_app
+
+
 # === אתחול ה-bot ברקע ===
 @app.before_first_request
 def before_first_request():
-    # אתחול הבוט ברקע
-    loop = asyncio.get_event_loop()
-    loop.create_task(initialize_bot())
+    # השתמש ב-asyncio.run() כדי להריץ את אתחול ה-bot
+    asyncio.run(initialize_bot())
 
 
 # Run Flask app
