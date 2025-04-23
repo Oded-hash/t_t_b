@@ -13,7 +13,7 @@ TOKEN = os.environ.get("telegram_token")
 WEBHOOK_URL = os.environ.get("webhook_url")  # תקבע ב-Render כ-Environment Variable
 
 app = Flask(__name__)
-bot_app = None
+bot_app = None  # <-- הגדרה גלובלית של bot_app
 
 # Define handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -52,16 +52,16 @@ def process_answer(url):
     response = model.generate_content(msg)
     return response.text
 
-
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook():
+    global bot_app
     print("==> Webhook called")
     try:
         json_data = request.get_json(force=True)
         print("==> Incoming JSON:", json_data)
 
         update = Update.de_json(json_data, bot_app.bot)
-        asyncio.run(bot_app.process_update(update))  # השתמש ב-asyncio.run במקום get_event_loop
+        asyncio.run(bot_app.process_update(update))
         return 'ok'
     except Exception as e:
         print("==> Error in webhook:", str(e))
@@ -73,26 +73,18 @@ def webhook():
 def index():
     return "Bot is running via webhook."
 
-
-# === אתחול ה-bot בצורה אסינכרונית ===
+# אתחול ה-bot ברקע בצורה תקינה
 async def initialize_bot():
+    global bot_app
     bot_app = ApplicationBuilder().token(TOKEN).build()
-    # כאן נוסיף את ה-handler
     bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-
-    # נוודא שה-bot מאותחל לפני שמבצעים את פעולת ה-webhook
     await bot_app.initialize()
     await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
     print("==> Webhook set successfully")
-    return bot_app
 
-
-# === אתחול ה-bot ברקע ===
 @app.before_first_request
 def before_first_request():
-    # השתמש ב-asyncio.run() כדי להריץ את אתחול ה-bot
     asyncio.run(initialize_bot())
-
 
 # Run Flask app
 port = int(os.environ.get('PORT', 5000))
