@@ -1,7 +1,8 @@
-Flask
-python-telegram-bot==20.3
+aiohttp
+python-telegram-bot==20.0
+Flask==2.2.5
 requests
 beautifulsoup4
 newspaper3k
 google-generativeai
-aiohttp
+lxml-html-clean
