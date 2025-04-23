@@ -8,7 +8,7 @@ from newspaper import Article
 import google.generativeai as genai
 import os
 import asyncio
-import aiohttp  # <--- חדש
+import aiohttp
 
 TOKEN = os.environ.get("telegram_token")
 WEBHOOK_URL = os.environ.get("webhook_url")  # תקבע ב-Render כ-Environment Variable
@@ -78,6 +78,19 @@ def index():
     return "Bot is running via webhook."
 
 
+# == Recover missed updates if any ==
+async def recover_missed_updates():
+    global bot_app
+    print("==> Checking for missed updates...")
+    updates = await bot_app.bot.get_updates()
+    if updates:
+        print(f"==> Found {len(updates)} missed updates.")
+        for update in updates:
+            await bot_app.process_update(update)
+    else:
+        print("==> No missed updates found.")
+
+
 # == Async initialization for bot_app with aiohttp timeout ==
 async def initialize_bot():
     global bot_app
@@ -94,6 +107,8 @@ async def initialize_bot():
     await bot_app.initialize()
     await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
     print("==> Webhook set successfully")
+
+    await recover_missed_updates()  # <== כאן זה קורה
 
 
 # == Run the bot setup on startup ==
