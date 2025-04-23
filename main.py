@@ -1,6 +1,7 @@
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+from telegram import Bot
 
 import requests
 from bs4 import BeautifulSoup
@@ -10,6 +11,7 @@ import os
 import asyncio
 import aiohttp
 import re
+import argparse
 
 TOKEN = os.environ.get("telegram_token")
 WEBHOOK_URL = os.environ.get("webhook_url")
@@ -39,7 +41,7 @@ async def process_answer(url):
         print(f"Error processing with newspaper: {e}")
         try:
             response = requests.get(url, timeout=10)
-            response.raise_for_status()  # Raise an exception for bad status codes
+            response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             article_element = soup.find('article') or soup.find(class_='article__content') or soup.find('main')
             content = article_element.get_text(strip=True) if article_element else "לא נמצא תוכן עיקרי במאמר."
@@ -80,42 +82,34 @@ async def webhook():
 def index():
     return "הבוט פועל דרך webhook."
 
-async def initialize_bot():
+async def initialize_bot(local: bool = False):
     global bot_app
     timeout = aiohttp.ClientTimeout(total=30)
     session = aiohttp.ClientSession(timeout=timeout)
+    bot = Bot(TOKEN, client_session=session, request_kwargs={'read_timeout': timeout.total})
     bot_app = (
         ApplicationBuilder()
-        .token(TOKEN)
-        .http_client(session)
+        .bot(bot)
         .build()
     )
     bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     await bot_app.initialize()
-    try:
-        await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
-        print("==> Webhook set successfully")
-    except Exception as e:
-        print(f"==> Error setting webhook: {e}")
-
-    # ייתכן שעדיף להסיר את זה או להוסיף השהיה קלה לפני
-    # await recover_missed_updates()
-
-# async def recover_missed_updates():
-#     global bot_app
-#     print("==> Checking for missed updates...")
-#     updates = await bot_app.bot.get_updates()
-#     if updates:
-#         print(f"==> Found {len(updates)} missed updates.")
-#         for update in updates:
-#             await bot_app.process_update(update)
-#     else:
-#         print("==> No missed updates found.")
+    if not local:
+        try:
+            await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
+            print("==> Webhook set successfully")
+        except Exception as e:
+            print(f"==> Error setting webhook: {e}")
+    else:
+        print("==> Running locally, webhook will not be set.")
 
 @app.before_first_request
 def before_first_request():
-    asyncio.run(initialize_bot())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--local", action="store_true", help="Run the bot locally without webhook")
+    args = parser.parse_args()
+    asyncio.run(initialize_bot(local=args.local))
 
-port = int(os.environ.get('PORT', 5000))
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
