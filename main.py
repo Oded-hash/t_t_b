@@ -75,17 +75,16 @@ def webhook():
 def index():
     return "Bot is running via webhook."
 
-if __name__ == '__main__':
-    # קבע את ה-Webhook כאשר האפליקציה עולה
-    print("@@@@@@ will start in a moment @@@@@@")
-    async def set_webhook():
-        await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
+# ==== Setup the webhook outside of __main__ so it'll run even after sleep ====
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(bot_app.initialize())
-    loop.run_until_complete(set_webhook())
-    
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+async def init_bot():
+    await bot_app.initialize()
+    await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
+    print("==> Webhook set!")
 
-    print("@@@@@@ bring up is done, you can start sending links @@@@@@")
+# Run the webhook setup on startup
+asyncio.get_event_loop().create_task(init_bot())
+
+# Run Flask app
+port = int(os.environ.get('PORT', 5000))
+app.run(host='0.0.0.0', port=port)
