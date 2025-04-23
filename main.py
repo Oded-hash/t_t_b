@@ -57,9 +57,19 @@ bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_mes
 
 @app.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), bot_app.bot)
-    asyncio.run(bot_app.process_update(update))
-    return 'ok'
+    print("==> Webhook called")
+    try:
+        json_data = request.get_json(force=True)
+        print("==> Incoming JSON:", json_data)
+
+        update = Update.de_json(json_data, bot_app.bot)
+        asyncio.run(bot_app.process_update(update))
+        return 'ok'
+    except Exception as e:
+        print("==> Error in webhook:", str(e))
+        import traceback
+        traceback.print_exc()
+        return 'error', 500
 
 @app.route('/')
 def index():
@@ -72,6 +82,7 @@ if __name__ == '__main__':
         await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
 
     loop = asyncio.get_event_loop()
+    loop.run_until_complete(bot_app.initialize())
     loop.run_until_complete(set_webhook())
     
     port = int(os.environ.get('PORT', 5000))
