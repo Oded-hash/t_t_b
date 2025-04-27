@@ -1,114 +1,73 @@
-from flask import Flask, request
+import argparse
+import os,json
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
-
 import requests
 from bs4 import BeautifulSoup
 from newspaper import Article
 import google.generativeai as genai
-import os
-import asyncio
-import aiohttp
-import re
-import argparse
-from flask.signals import request_started
 
-TOKEN = os.environ.get("telegram_token")
-WEBHOOK_URL = os.environ.get("webhook_url")
 
-app = Flask(__name__)
-bot_app = None
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
-    link_match = re.search(r'https?://\S+', user_message)
-    if link_match:
-        link = link_match.group(0)
-        print(f"User sent: {link}")
-        answer = await process_answer(link)
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=answer)
-    else:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="לא זוהה קישור בהודעה.")
+    await update.message.reply_text("השרת למעלה, תכף נתחיל לעבד את הבקשה שלך")
 
-async def process_answer(url):
-    content = ""
+    try:
+        user_message = update.message.text
+        first = user_message.split("https:")[1:]
+        link = 'https:' + first[0]
+        print(f"User sent: {link}")
+    except:
+        await update.message.reply_text("הבקשה לא תקינה, בדוק את תוכן ההודעה ששלחת")
+        return
+    answer = process_answer(link)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=answer)
+
+def process_answer(url):
     try:
         article = Article(url)
         article.download()
         article.parse()
         content = article.text
+        title = article.title
     except Exception as e:
-        print(f"Error processing with newspaper: {e}")
         try:
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.content, 'html.parser')
-            article_element = soup.find('article') or soup.find(class_='article__content') or soup.find('main')
-            content = article_element.get_text(strip=True) if article_element else "לא נמצא תוכן עיקרי במאמר."
-        except requests.exceptions.RequestException as e:
-            content = f"שגיאה בגישה לדף האינטרנט: {e}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                article = soup.find('article') or soup.find(class_='article__content') or soup.find('main')
+                content = article.get_text() if article else "Main article content not found."
+                title = soup.title.string
+            else:
+                content = "Couldn't fetch the page."
         except Exception as e:
-            content = f"שגיאה לא צפויה בעיבוד הדף: {e}"
+            content = f"An error occurred: {str(e)}"
 
-    if not content:
-        return "לא הצלחתי לחלץ תוכן מהקישור שסופק."
+    genai.configure(api_key=api_key)
 
-    genai.configure(api_key=os.environ.get("gemini_api_key"))
     model = genai.GenerativeModel("gemini-1.5-pro-latest")
-    msg = f"בבקשה תסכם ותתרגם לעברית את הטקסט הבא: {content}"
-    try:
-        response = await model.generate_content_async(msg)
-        return response.text
-    except Exception as e:
-        return f"שגיאה בתקשורת עם Gemini: {e}"
+    msg = f"pls summarize and translate to hebrew the next text: {content}"
+    response = model.generate_content(msg)
+    return response.text
 
-@app.route(f"/webhook/{TOKEN}", methods=["POST"])
-async def webhook():
-    global bot_app
-    print("==> Webhook called")
-    try:
-        json_data = request.get_json(force=True)
-        print("==> Incoming JSON:", json_data)
-        update = Update.de_json(json_data, bot_app.bot)
-        # הפעל את הטיפול בהודעה כמשימה ברקע
-        asyncio.create_task(bot_app.process_update(update))
-        return 'ok'
-    except Exception as e:
-        print("==> Error in webhook:", str(e))
-        import traceback
-        traceback.print_exc()
-        return 'error', 500
+async def handle_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("שלום! אני הבוט שלך 😄")
 
-@app.route('/')
-def index():
-    return "הבוט פועל דרך webhook."
 
-async def initialize_bot(local: bool = False):
-    global bot_app
-    bot_app = (
-        ApplicationBuilder()
-        .token(TOKEN)
-        .build()
-    )
-    bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    await bot_app.initialize()
-    if not local:
-        try:
-            await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{TOKEN}")
-            print("==> Webhook set successfully")
-        except Exception as e:
-            print(f"==> Error setting webhook: {e}")
-    else:
-        print("==> Running locally, webhook will not be set.")
-
-def on_first_request(sender, **extra):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--local", action="store_true", help="Run the bot locally without webhook")
-    args = parser.parse_args()
-    asyncio.run(initialize_bot(local=args.local))
-
-request_started.connect(on_first_request, app)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    parser = argparse.ArgumentParser(description="בוט טלגרם עם הודעות עליית/ירידת שרת")
+    parser.add_argument("--local", action="store_true", help="run localy")
+    args = parser.parse_args()
+    if args.local:
+        with open('keys.json', 'r') as file:
+            data = json.load(file)
+        TOKEN = data["telegram_token"]
+        api_key=data["gemini_api_key"]
+    else:
+        TOKEN=os.environ.get("telegram_token")
+        api_key=os.environ.get("gemini_api_key")
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    print("server is up")
+    app.run_polling()
