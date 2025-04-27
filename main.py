@@ -1,7 +1,6 @@
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
-from telegram import Bot
 
 import requests
 from bs4 import BeautifulSoup
@@ -84,12 +83,9 @@ def index():
 
 async def initialize_bot(local: bool = False):
     global bot_app
-    timeout = aiohttp.ClientTimeout(total=30)
-    session = aiohttp.ClientSession(timeout=timeout)
-    bot = Bot(TOKEN, client_session=session, request_kwargs={'read_timeout': timeout.total})
     bot_app = (
         ApplicationBuilder()
-        .bot(bot)
+        .token(TOKEN)
         .build()
     )
     bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
