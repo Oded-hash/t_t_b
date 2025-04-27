@@ -1,6 +1,6 @@
 aiohttp
 python-telegram-bot==20.8
-Flask[async]
+Flask[async]>=2.0
 requests
 beautifulsoup4
 newspaper3k
