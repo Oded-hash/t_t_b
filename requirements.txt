@@ -3,5 +3,6 @@ python-telegram-bot
 requests
 beautifulsoup4
 newspaper3k
+lxml[html_clean]
 google-generativeai
 aiohttp
