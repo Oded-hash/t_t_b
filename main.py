@@ -81,20 +81,21 @@ if __name__ == '__main__':
     parser.add_argument("--local", action="store_false", help="run locally")
     args = parser.parse_args()
 
-    if args.local:
-        with open('keys.json', 'r') as file:
-            data = json.load(file)
-        TOKEN = data["telegram_token"]
-        api_key = data["gemini_api_key"]
-    else:
-        TOKEN = os.environ.get("telegram_token")
-        api_key = os.environ.get("gemini_api_key")
+    # if args.local:
+    #     with open('keys.json', 'r') as file:
+    #         data = json.load(file)
+    #     TOKEN = data["telegram_token"]
+    #     api_key = data["gemini_api_key"]
+    # else:
+    #     TOKEN = os.environ.get("telegram_token")
+    #     api_key = os.environ.get("gemini_api_key")
         #debug
         # with open('keys.json', 'r') as file:
         #     data = json.load(file)
         # TOKEN = data["telegram_token"]
         # api_key = data["gemini_api_key"]
-
+    TOKEN = os.environ.get("telegram_token")
+    api_key = os.environ.get("gemini_api_key")
     application = ApplicationBuilder().token(TOKEN).build()
 
     # Add handlers to the application
