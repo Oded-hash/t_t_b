@@ -78,7 +78,7 @@ def run_polling():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="בוט טלגרם עם הודעות עליית/ירידת שרת")
     parser.add_argument("--webhook", action="store_true", help="run using webhook instead of polling")
-    parser.add_argument("--local", action="store_true", help="run locally")
+    parser.add_argument("--local", action="store_false", help="run locally")
     args = parser.parse_args()
 
     if args.local:
