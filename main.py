@@ -11,6 +11,7 @@ import asyncio
 import aiohttp
 import re
 import argparse
+from flask.signals import request_started
 
 TOKEN = os.environ.get("telegram_token")
 WEBHOOK_URL = os.environ.get("webhook_url")
@@ -99,12 +100,13 @@ async def initialize_bot(local: bool = False):
     else:
         print("==> Running locally, webhook will not be set.")
 
-@app.before_first_request
-def before_first_request():
+def on_first_request(sender, **extra):
     parser = argparse.ArgumentParser()
     parser.add_argument("--local", action="store_true", help="Run the bot locally without webhook")
     args = parser.parse_args()
     asyncio.run(initialize_bot(local=args.local))
+
+request_started.connect(on_first_request, app)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
