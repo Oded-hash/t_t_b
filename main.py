@@ -70,7 +70,8 @@ async def webhook():
         json_data = request.get_json(force=True)
         print("==> Incoming JSON:", json_data)
         update = Update.de_json(json_data, bot_app.bot)
-        await bot_app.process_update(update)
+        # הפעל את הטיפול בהודעה כמשימה ברקע
+        asyncio.create_task(bot_app.process_update(update))
         return 'ok'
     except Exception as e:
         print("==> Error in webhook:", str(e))
