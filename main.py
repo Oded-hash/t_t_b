@@ -61,7 +61,7 @@ def webhook():
 
 # ========== Set webhook on startup ==========
 def set_webhook():
-    webhook_url = f"https://your-ngrok-or-server-url/{TOKEN}"  # 🛠 שנה לכתובת שלך
+    webhook_url = f"https://t-t-b.onrender.com{TOKEN}"  # Replace with your actual deployed URL
     url = f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={webhook_url}"
     response = requests.get(url)
     print("Set webhook response:", response.json())
