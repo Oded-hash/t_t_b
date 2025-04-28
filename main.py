@@ -54,9 +54,12 @@ def process_answer(url):
 def webhook():
     global application
     json_str = request.get_data().decode('UTF-8')
-    update_data = json.loads(json_str)  # ← ← ← תיקון כאן
+    update_data = json.loads(json_str)
     update = Update.de_json(update_data, application.bot)
-    application.process_update(update)
+    
+    # הרצה אסינכרונית
+    asyncio.run(application.process_update(update))
+    
     return 'OK'
     
 # ========== Webhook setup ==========
