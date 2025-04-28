@@ -54,15 +54,14 @@ def process_answer(url):
 # ========== Webhook route ==========
 
 @app.route('/' + TOKEN, methods=['POST'])
-async def webhook():
+def webhook():
     global application
-    print("Received a request")  # לוג כאשר מתקבלת בקשה
     json_str = request.get_data().decode('UTF-8')
     update_data = json.loads(json_str)
     update = Update.de_json(update_data, application.bot)
-    
-    print(f"Received update: {update}")  # הדפסת אובייקט ה־update כדי לראות את המידע שנשלח
-    await application.process_update(update)  # הרצה אסינכרונית של העדכון
+
+    # הרצת הפונקציה אסינכרונית בצורה מסודרת
+    asyncio.create_task(application.process_update(update))  # לא להשתמש ב- await כאן
     
     return 'OK'
 
@@ -77,16 +76,20 @@ def set_webhook():
 
 # ========== Main ==========
 
-if __name__ == '__main__':
+async def main():
     # אתחול ה־Application בצורה אסינכרונית
+    global application
     application = ApplicationBuilder().token(TOKEN).build()
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    # נבצע אתחול בצורה אסינכרונית
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(application.initialize())
+
+    # אתחול האפליקציה בצורה אסינכרונית
+    await application.initialize()
     
     set_webhook()
     print("Bot is running in webhook mode via Render")
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)  # הפעלת debug mode
+    
+    # הפעלת השרת
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)  # הפעלת debug mode
+
+if __name__ == '__main__':
+    asyncio.run(main())  # הפעל את כל התהליכים האסינכרוניים דרך asyncio.run
