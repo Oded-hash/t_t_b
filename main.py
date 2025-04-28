@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from newspaper import Article
 import google.generativeai as genai
 import json
+import asyncio
 
 app = Flask(__name__)
 
