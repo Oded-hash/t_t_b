@@ -60,9 +60,12 @@ def webhook():
     update_data = json.loads(json_str)
     update = Update.de_json(update_data, application.bot)
 
-    # הרצת הפונקציה אסינכרונית בצורה מסודרת
-    asyncio.create_task(application.process_update(update))  # לא להשתמש ב- await כאן
-    
+    # דאג שה event loop פעיל
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # הרצת המשימה האסינכרונית
+    loop.create_task(application.process_update(update))  # לא להשתמש ב- await כאן
     return 'OK'
 
 # ========== Webhook setup ==========
@@ -84,7 +87,7 @@ async def main():
 
     # אתחול האפליקציה בצורה אסינכרונית
     await application.initialize()
-    
+
     set_webhook()
     print("Bot is running in webhook mode via Render")
     
