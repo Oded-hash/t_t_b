@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 TOKEN = os.environ["telegram_token"]
 API_KEY = os.environ["gemini_api_key"]
-application = None  # נאתחל אחר כך
+application = None  # נאתחל אחרי יצירת הבוט
 
 # ========== Handlers ==========
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -73,8 +73,8 @@ def set_webhook():
 
 # ========== Main ==========
 if __name__ == '__main__':
-    application = ApplicationBuilder().token(TOKEN).build()
-    application.initialize()  # אתחול נכון של האובייקט
+    # אתחול הבוט כאן
+    application = ApplicationBuilder().token(TOKEN).build()  # אתחול נכון של הבוט
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     set_webhook()
     print("Bot is running in webhook mode via Render")
