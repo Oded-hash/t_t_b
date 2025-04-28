@@ -52,17 +52,17 @@ def process_answer(url):
 
 # ========== Webhook route ==========
 @app.route('/' + TOKEN, methods=['POST'])
-def webhook():
+async def webhook():
     global application
     json_str = request.get_data().decode('UTF-8')
     update_data = json.loads(json_str)
     update = Update.de_json(update_data, application.bot)
     
     # הרצה אסינכרונית
-    asyncio.run(application.process_update(update))
+    await application.process_update(update)  # השתמש ב-await במקום asyncio.run
     
     return 'OK'
-    
+
 # ========== Webhook setup ==========
 def set_webhook():
     base_url = "https://t-t-b.onrender.com"
@@ -74,6 +74,7 @@ def set_webhook():
 # ========== Main ==========
 if __name__ == '__main__':
     application = ApplicationBuilder().token(TOKEN).build()
+    application.initialize()  # אתחול נכון של האובייקט
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     set_webhook()
     print("Bot is running in webhook mode via Render")
