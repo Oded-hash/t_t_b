@@ -58,7 +58,7 @@ def webhook():
 
 # ========== Webhook setup ==========
 def set_webhook():
-    base_url = os.environ["base_url"]  # Example: https://my-bot.onrender.com
+    base_url ="https://t-t-b.onrender.com"  # Example: https://my-bot.onrender.com
     print(base_url)
     webhook_url = f"{base_url}/{TOKEN}"
     print(webhook_url)
