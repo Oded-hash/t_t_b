@@ -6,6 +6,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTyp
 from bs4 import BeautifulSoup
 from newspaper import Article
 import google.generativeai as genai
+import json
 
 app = Flask(__name__)
 
@@ -51,12 +52,13 @@ def process_answer(url):
 # ========== Webhook route ==========
 @app.route('/' + TOKEN, methods=['POST'])
 def webhook():
-    global application  # נשתמש ב־application הגלובלי
+    global application
     json_str = request.get_data().decode('UTF-8')
-    update = Update.de_json(json_str, application.bot)
+    update_data = json.loads(json_str)  # ← ← ← תיקון כאן
+    update = Update.de_json(update_data, application.bot)
     application.process_update(update)
     return 'OK'
-
+    
 # ========== Webhook setup ==========
 def set_webhook():
     base_url = "https://t-t-b.onrender.com"
