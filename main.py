@@ -1,28 +1,25 @@
 import os
-import json
 import requests
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
-import google.generativeai as genai
 from bs4 import BeautifulSoup
 from newspaper import Article
+import google.generativeai as genai
 
 app = Flask(__name__)
-TOKEN = os.environ.get("telegram_token")
-API_KEY = os.environ.get("gemini_api_key")
+TOKEN = os.environ["telegram_token"]
+API_KEY = os.environ["gemini_api_key"]
 
 application = ApplicationBuilder().token(TOKEN).build()
 
 # ========== Handlers ==========
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("השרת למעלה, תכף נתחיל לעבד את הבקשה שלך")
-
     try:
         user_message = update.message.text
         first = user_message.split("https:")[1:]
         link = 'https:' + first[0]
-        print(f"User sent: {link}")
     except:
         await update.message.reply_text("הבקשה לא תקינה, בדוק את תוכן ההודעה ששלחת")
         return
@@ -51,7 +48,7 @@ def process_answer(url):
     response = model.generate_content(prompt)
     return response.text
 
-# ========== Webhook Flask route ==========
+# ========== Webhook route ==========
 @app.route('/' + TOKEN, methods=['POST'])
 def webhook():
     json_str = request.get_data().decode('UTF-8')
@@ -59,18 +56,21 @@ def webhook():
     application.process_update(update)
     return 'OK'
 
-# ========== Set webhook on startup ==========
+# ========== Webhook setup ==========
 def set_webhook():
-    webhook_url = f"https://t-t-b.onrender.com{TOKEN}"  # Replace with your actual deployed URL
+    base_url = os.environ["base_url"]  # Example: https://my-bot.onrender.com
+    print(base_url)
+    webhook_url = f"{base_url}/{TOKEN}"
     print(webhook_url)
     url = f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={webhook_url}"
     print(url)
     response = requests.get(url)
-    print("Set webhook response:", response.json())
+    print("Set webhook:", response.json())
 
 # ========== Main ==========
 if __name__ == '__main__':
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     set_webhook()
-    print("Bot is running in webhook mode...")
-    app.run(host="0.0.0.0", port=5000)
+    print("Bot is running in webhook mode via Render")
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
