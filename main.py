@@ -8,10 +8,10 @@ from newspaper import Article
 import google.generativeai as genai
 
 app = Flask(__name__)
+
 TOKEN = os.environ["telegram_token"]
 API_KEY = os.environ["gemini_api_key"]
-
-application = ApplicationBuilder().token(TOKEN).build()
+application = None  # נאתחל אחר כך
 
 # ========== Handlers ==========
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -51,6 +51,7 @@ def process_answer(url):
 # ========== Webhook route ==========
 @app.route('/' + TOKEN, methods=['POST'])
 def webhook():
+    global application  # נשתמש ב־application הגלובלי
     json_str = request.get_data().decode('UTF-8')
     update = Update.de_json(json_str, application.bot)
     application.process_update(update)
@@ -58,17 +59,15 @@ def webhook():
 
 # ========== Webhook setup ==========
 def set_webhook():
-    base_url ="https://t-t-b.onrender.com"  # Example: https://my-bot.onrender.com
-    print(base_url)
+    base_url = "https://t-t-b.onrender.com"
     webhook_url = f"{base_url}/{TOKEN}"
-    print(webhook_url)
     url = f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={webhook_url}"
-    print(url)
     response = requests.get(url)
     print("Set webhook:", response.json())
 
 # ========== Main ==========
 if __name__ == '__main__':
+    application = ApplicationBuilder().token(TOKEN).build()
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     set_webhook()
     print("Bot is running in webhook mode via Render")
