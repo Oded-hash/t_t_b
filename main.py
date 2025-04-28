@@ -13,9 +13,10 @@ app = Flask(__name__)
 
 TOKEN = os.environ["telegram_token"]
 API_KEY = os.environ["gemini_api_key"]
-application = None  # נאתחל אחרי יצירת הבוט
+application = None  # נאתחל אחר כך
 
 # ========== Handlers ==========
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("השרת למעלה, תכף נתחיל לעבד את הבקשה שלך")
     try:
@@ -51,32 +52,41 @@ def process_answer(url):
     return response.text
 
 # ========== Webhook route ==========
+
 @app.route('/' + TOKEN, methods=['POST'])
 async def webhook():
     global application
+    print("Received a request")  # לוג כאשר מתקבלת בקשה
     json_str = request.get_data().decode('UTF-8')
     update_data = json.loads(json_str)
     update = Update.de_json(update_data, application.bot)
     
-    # הרצה אסינכרונית
-    await application.process_update(update)  # השתמש ב-await במקום asyncio.run
+    print(f"Received update: {update}")  # הדפסת אובייקט ה־update כדי לראות את המידע שנשלח
+    await application.process_update(update)  # הרצה אסינכרונית של העדכון
     
     return 'OK'
 
 # ========== Webhook setup ==========
+
 def set_webhook():
     base_url = "https://t-t-b.onrender.com"
     webhook_url = f"{base_url}/{TOKEN}"
     url = f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={webhook_url}"
     response = requests.get(url)
-    print("Set webhook:", response.json())
+    print("Set webhook:", response.json())  # הדפסת תשובה מה־API של Telegram
 
 # ========== Main ==========
+
 if __name__ == '__main__':
-    # אתחול הבוט כאן
-    application = ApplicationBuilder().token(TOKEN).build()  # אתחול נכון של הבוט
+    # אתחול ה־Application בצורה אסינכרונית
+    application = ApplicationBuilder().token(TOKEN).build()
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    # נבצע אתחול בצורה אסינכרונית
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(application.initialize())
+    
     set_webhook()
     print("Bot is running in webhook mode via Render")
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)  # הפעלת debug mode
